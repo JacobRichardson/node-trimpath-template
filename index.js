@@ -224,23 +224,23 @@ var parse = function(body, tmplName, etc) {
     body = cleanWhiteSpace(body);
     var funcText = [ "var TrimPath_Template_TEMP = function(_OUT, _CONTEXT, _FLAGS) { with (_CONTEXT) {" ];
     var state    = { stack: [], line: 1 };                              // TODO: Fix line number counting.
-    var endStmtPrev = -1;
+    var endStmtPrev = -2;
     while (endStmtPrev + 1 < body.length) {
         var begStmt = endStmtPrev;
         // Scan until we find some statement markup.
-        begStmt = body.indexOf("{", begStmt + 1);
+        begStmt = body.indexOf("{{", begStmt);
         while (begStmt >= 0) {
-            var endStmt = body.indexOf('}', begStmt + 1);
+            var endStmt = body.indexOf('}}', begStmt + 1);
             var stmt = body.substring(begStmt, endStmt);
             var blockrx = stmt.match(/^\{(cdata|minify|eval)/); // From B. Bittman, minify/eval/cdata implementation.
             if (blockrx) {
                 var blockType = blockrx[1];
                 var blockMarkerBeg = begStmt + blockType.length + 1;
-                var blockMarkerEnd = body.indexOf('}', blockMarkerBeg);
+                var blockMarkerEnd = body.indexOf('}}', blockMarkerBeg);
                 if (blockMarkerEnd >= 0) {
                     var blockMarker;
                     if( blockMarkerEnd - blockMarkerBeg <= 0 ) {
-                        blockMarker = "{/" + blockType + "}";
+                        blockMarker = "{{/" + blockType + "}}";
                     } else {
                         blockMarker = body.substring(blockMarkerBeg + 1, blockMarkerEnd);
                     }
@@ -261,7 +261,7 @@ var parse = function(body, tmplName, etc) {
                         begStmt = endStmtPrev = blockEnd + blockMarker.length - 1;
                     }
                 }
-            } else if (body.charAt(begStmt - 1) != '$' &&               // Not an expression or backslashed,
+            } else if (body.charAt(begStmt - 2) != '$' &&               // Not an expression or backslashed,
                         body.charAt(begStmt - 1) != '\\') {              // so check if it is a statement tag.
                 var offset = (body.charAt(begStmt + 1) == '/' ? 2 : 1); // Close tags offset of 2 skips '/'.
                                                                         // 10 is larger than maximum statement tag length.
@@ -272,14 +272,15 @@ var parse = function(body, tmplName, etc) {
         }
         if (begStmt < 0)                              // In "a{for}c", begStmt will be 1.
             break;
-        var endStmt = body.indexOf("}", begStmt + 1); // In "a{for}c", endStmt will be 5.
+        var endStmt = body.indexOf("}}", begStmt); // In "a{for}c", endStmt will be 5.
         if (endStmt < 0)
             break;
-        emitSectionText(body.substring(endStmtPrev + 1, begStmt), funcText);
+            //CHANGED 1 to 2 bc of }}    
+        emitSectionText(body.substring(endStmtPrev + 2, begStmt - 1), funcText);
         emitStatement(body.substring(begStmt, endStmt + 1), state, funcText, tmplName, etc);
         endStmtPrev = endStmt;
     }
-    emitSectionText(body.substring(endStmtPrev + 1), funcText);
+    emitSectionText(body.substring(endStmtPrev + 2), funcText);
     if (state.stack.length != 0)
         throw new etc.ParseError(tmplName, state.line, "unclosed, unmatched statement(s): " + state.stack.join(","));
     funcText.push("}}; TrimPath_Template_TEMP");
@@ -338,10 +339,11 @@ var emitSectionText = function(text, funcText) {
 }
 
 var emitSectionTextLine = function(line, funcText) {
-    var endMarkPrev = '}';
-    var endExprPrev = -1;
+    var endMarkPrev = '}}';
+    //CHANGED TO -2 BECAUSE THE END MARK GET SWTICH TO 2 CHARACTERS INSTEAD OF 1
+    var endExprPrev = -2;
     while (endExprPrev + endMarkPrev.length < line.length) {
-        var begMark = "${", endMark = "}";
+        var begMark = "${{", endMark = "}}";
         var begExpr = line.indexOf(begMark, endExprPrev + endMarkPrev.length); // In "a${b}c", begExpr == 1
         if (begExpr < 0)
             break;
