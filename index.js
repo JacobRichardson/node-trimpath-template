@@ -38,6 +38,12 @@
 var join = require('path').join;
 var dirname = require('path').dirname;
 
+//TODO: Implement a way to generalized the tokens and change the numbers to relefect token.length. Also include special characters.
+var defaults = {
+    OPENING
+}
+module.exports = defaults;
+
 module.exports.filters = {};
 module.exports.collapseWhitespace = false;
 module.exports.collapseWhitespaceReg = [
@@ -87,7 +93,7 @@ var TrimPath = module.exports.TrimPath = {};
 var UNDEFINED;
 
 TrimPath.processIncludes = function (tmplContent, options) {
-    var reg = /\{include ([^\}]*)\}/gi;
+    var reg = /\{\{include ([^\}]*)}\}/gi
     var path;
     var tmp;
 
@@ -95,7 +101,6 @@ TrimPath.processIncludes = function (tmplContent, options) {
         try {
             //ugh; loading this here because in the browser this fails (with webpack)
             var fs = require('fs');
-
             tmp = fs.readFileSync(join(options.root, path[1]), 'utf8');
         }
         catch (e) {
@@ -225,13 +230,16 @@ var parse = function(body, tmplName, etc) {
     var funcText = [ "var TrimPath_Template_TEMP = function(_OUT, _CONTEXT, _FLAGS) { with (_CONTEXT) {" ];
     var state    = { stack: [], line: 1 };                              // TODO: Fix line number counting.
     var endStmtPrev = -2;
-    while (endStmtPrev + 1 < body.length) {
+    while (endStmtPrev < body.length) {
         var begStmt = endStmtPrev;
         // Scan until we find some statement markup.
         begStmt = body.indexOf("{{", begStmt);
         while (begStmt >= 0) {
             var endStmt = body.indexOf('}}', begStmt + 1);
-            var stmt = body.substring(begStmt, endStmt);
+            var stmt = body.substring(begStmt, endStmt + 2);
+
+            debugLog("stmt " + stmt);
+
             var blockrx = stmt.match(/^\{(cdata|minify|eval)/); // From B. Bittman, minify/eval/cdata implementation.
             if (blockrx) {
                 var blockType = blockrx[1];
@@ -246,10 +254,18 @@ var parse = function(body, tmplName, etc) {
                     }
 
                     var blockEnd = body.indexOf(blockMarker, blockMarkerEnd + 1);
-                    if (blockEnd >= 0) {
-                        emitSectionText(body.substring(endStmtPrev + 1, begStmt), funcText);
 
-                        var blockText = body.substring(blockMarkerEnd + 1, blockEnd);
+                    debugLog("BLOCK MARKER: " + blockMarker);
+
+                    if (blockEnd >= 0) {
+                        //CHANGED TO 2 BC OF {{
+                        emitSectionText(body.substring(endStmtPrev + 2, begStmt - 1), funcText);
+
+                        //CHANGED TO 2 BC OF {{
+                        var blockText = body.substring(blockMarkerEnd + 2, blockEnd);
+
+                        debugLog("BLOCK TEXT: " + blockText);
+
                         if (blockType == 'cdata') {
                             emitText(blockText, funcText);
                         } else if (blockType == 'minify') {
@@ -263,23 +279,36 @@ var parse = function(body, tmplName, etc) {
                 }
             } else if (body.charAt(begStmt - 2) != '$' &&               // Not an expression or backslashed,
                         body.charAt(begStmt - 1) != '\\') {              // so check if it is a statement tag.
-                var offset = (body.charAt(begStmt + 1) == '/' ? 2 : 1); // Close tags offset of 2 skips '/'.
+                                        //CHANGE TO + 2 BC OF {{        ADDED IN ACCOUNTING FOR POUND SIGNS
+                var offset = (body.charAt(begStmt + 2) == '/' || body.charAt(begStmt + 2) == '#' ? 3 : 2); // Close tags offset of 2 skips '/'.
                                                                         // 10 is larger than maximum statement tag length.
-                if (body.substring(begStmt + offset, begStmt + 10 + offset).search(TrimPath.parseTemplate_etc.statementTag) == 0)
+               
+
+                debugLog("\nSTRING THAT IS BEING SEARCHED: " + body.substring(begStmt + offset, begStmt + 10 + offset));
+                debugLog("RESULT OF SEARCH: " + body.substring(begStmt + offset, begStmt + 10 + offset).search(TrimPath.parseTemplate_etc.statementTag) + "\n");
+                if (body.substring(begStmt + offset, begStmt + 10 + offset).search(TrimPath.parseTemplate_etc.statementTag) == 0){
+                    debugLog("BREAK BC OF MATCH");
                     break;                                              // Found a match.
+                }
             }
             begStmt = body.indexOf("{", begStmt + 1);
         }
+        debugLog("\nOUTSIDE INNER LOOP");
         if (begStmt < 0)                              // In "a{for}c", begStmt will be 1.
             break;
         var endStmt = body.indexOf("}}", begStmt); // In "a{for}c", endStmt will be 5.
         if (endStmt < 0)
             break;
             //CHANGED 1 to 2 bc of }}    
-        emitSectionText(body.substring(endStmtPrev + 2, begStmt - 1), funcText);
-        emitStatement(body.substring(begStmt, endStmt + 1), state, funcText, tmplName, etc);
+        emitSectionText(body.substring(endStmtPrev + 2, begStmt), funcText);
+
+        debugLog("STATMENT STRING TO EMIT STATMENT");
+        debugLog(body.substring(begStmt, endStmt + 2) + "\n");
+
+        emitStatement(body.substring(begStmt, endStmt + 2), state, funcText, tmplName, etc);
         endStmtPrev = endStmt;
     }
+
     emitSectionText(body.substring(endStmtPrev + 2), funcText);
     if (state.stack.length != 0)
         throw new etc.ParseError(tmplName, state.line, "unclosed, unmatched statement(s): " + state.stack.join(","));
@@ -288,8 +317,17 @@ var parse = function(body, tmplName, etc) {
 }
 
 var emitStatement = function(stmtStr, state, funcText, tmplName, etc) {
-    var parts = stmtStr.slice(1, -1).split(' ');
+    //REMOVING DOUBLE CURLY BRACES FROM STATMENT
+    stmtStr = stmtStr.slice(2, stmtStr.length - 2);
+    if(stmtStr.charAt(0) == '#'){
+        stmtStr = stmtStr.slice(1, stmtStr.length);
+    }
+    var parts = stmtStr.split(' ');
     var stmt = etc.statementDef[parts[0]]; // Here, parts[0] == for/if/else/...
+
+    debugLog("STMTSTR: " + stmtStr)
+    debugLog("PARTS: " + parts);
+    debugLog("STMT: " + stmt);
     if (stmt == null) {                    // Not a real statement.
         emitSectionText(stmtStr, funcText);
         return;
@@ -299,9 +337,10 @@ var emitStatement = function(stmtStr, state, funcText, tmplName, etc) {
             throw new etc.ParseError(tmplName, state.line, "close tag does not match any previous statement: " + stmtStr);
         state.stack.pop();
     }
-    if (stmt.delta > 0)
+    if (stmt.delta > 0){
+        debugLog("PUSING STATMENT TO STACK: " + stmtStr); 
         state.stack.push(stmtStr);
-
+    }
     if (stmt.paramMin != null &&
         stmt.paramMin >= parts.length)
         throw new etc.ParseError(tmplName, state.line, "statement needs more parameters: " + stmtStr);
@@ -446,4 +485,13 @@ TrimPath.parseDOMTemplate = function(elementId, optDocument, optEtc) {
 
 TrimPath.processDOMTemplate = function(elementId, context, optFlags, optDocument, optEtc) {
     return TrimPath.parseDOMTemplate(elementId, optDocument, optEtc).process(context, optFlags);
+}
+
+
+const debug = false;
+
+function debugLog (log) {
+    if(debug){
+        console.log(log);
+    }
 }

@@ -2,13 +2,13 @@ var test = require("tape"),
   	tpl = require("../"),
 	fs = require("fs");
 	
-test("test render call", function (t) {
+test("test render call.", function (t) {
   var str = tpl.render("${{name}}", {name: "steve"});
   t.equal(str, "steve");
   t.end();
 });
 
-test("test compile call", function (t) {
+test("test compile call.", function (t) {
   var c = tpl.compile("${{name}}");
 
   var d = c({name: "steve"});
@@ -17,7 +17,7 @@ test("test compile call", function (t) {
   t.end();
 });
 
-test("test filters/modifiers", function (t) {
+test("test filters/modifiers.", function (t) {
   tpl.filters.toYesNo = function (val) {
     return val
       ? "yes"
@@ -32,27 +32,38 @@ test("test filters/modifiers", function (t) {
   t.end();
 });
 
-test("test include files", function (t) {
-  var str1 = tpl.render("before {include ./test/test-include1.html} after", {name: "steve"});
-
+test("test include files.", function (t) {
+  var str1 = tpl.render("before {{include ./test/test-include1.html}} after", {name: "steve"});
   t.equal(str1, "before steve after");
   t.end();
 });
 
-test("test actual html file", function (t) {
+test("test double curly braces with pound signs.", function (t) {
   var data = {
-    name: "Dan"
-  };
- 
-  fs.readFile("test/test-include3.html", "utf8", function(err, fileData){
-	if(err){
-		console.log(err);
-	}
-	if(fileData){
-		//console.log(fileData);
-		console.log(tpl.render(fileData, data))
-	}
+    age: 21
+    , name: "Jacob"
+    , names: ["Joesph", "Jacob", "Dan", "D"]
+  }
+  var html = '{{#if age == 35}}You are ${{age}} years old.{{/if}}{{#if age == 21}}You are ${{age}} years old.{{/if}}';
+  var renderedHtml = tpl.render(html, data);
+  var expectedOutput = "You are " +  data.age + " years old.";
+  t.equal(renderedHtml, expectedOutput);
+  
+
+    fs.readFile("test/test-include4.html", "utf8", function(err, fileData){
+    if(err){
+      console.log(err);
+    }
+    if(fileData){
+      console.log((tpl.render(fileData, data)));
+    }
   });
-  var html = '{{if name == "Dan"}}${{name}}    {{/if}}{{if name == "Jacob"}}${{name}}{{/if}}{{if true}}{{/if}}{{if true}}{{/if}}';
+
   t.end();
 });
+
+// a = tpl.compile('dlflkjsadf', { opening : '{{#', closing: '}}'})
+
+
+// tpl.OPENING = '{{#'
+// tpl.CLOSING = '}}'

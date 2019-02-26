@@ -1,0 +1,41 @@
+{{#macro displayText()}}
+    <div>
+        Blah Blah...
+        <h1>Blah Blah Blah...</h1>
+    </div>
+    {{#if true}}
+        <h1>Game of Thrones</h1>
+    {{/if}}
+{{/macro}}
+
+
+<a href="/customer/address/${{name}}/new?path=/shop/customer-account" style="text-align:center;" class="five wide column address-style">
+    <i class='huge plus icon' style='margin-top:25px; font-size:30px; color:grey;'></i>
+    <div style='margin-top:40px;' class='content'>Add address</div>
+</a>
+{{#for name in names}}
+    {{#if name.length > 4}}
+        <div class="five wide left aligned column address-style">
+            <div class="header">
+                ${{name}}
+            </div>
+        </div>
+    {{else}}
+        <h1>Your name is too short. Pick a new name.</h1>
+    {{/if}}
+{{/for}}
+${{displayText()}}
+
+{{var num}}
+{{eval}}
+
+<!-- beautify ignore:start -->
+                        num = 5;
+    num++;
+<!-- beautify ignore:end -->
+{{/eval}}
+
+
+<h1>My favorite number is ${{num}}</h1>
+
+{{include ./test/test-include2.html}}
