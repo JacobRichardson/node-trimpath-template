@@ -40,7 +40,7 @@ var dirname = require('path').dirname;
 
 //TODO: Implement a way to generalized the tokens and change the numbers to relefect token.length. Also include special characters.
 var defaults = {
-    OPENING
+    OPENING : "{"
 }
 module.exports = defaults;
 
