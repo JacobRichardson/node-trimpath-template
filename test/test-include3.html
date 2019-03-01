@@ -1,32 +1,33 @@
-<a href="/customer/address/${{name}}/new?path=/shop/customer-account" style="text-align:center;" class="five wide column address-style">
-    <i class='huge plus icon' style='margin-top:25px; font-size:30px; color:grey;'></i>
-    <div style='margin-top:40px;' class='content'>Add address</div>
+<a href="#" style="display:block" class="class">
+    <i class='class' style='display:block'></i>
+    <div style='display:block' class='class'>Add address</div>
 </a>
-{{if true}}
-    {{if true}}
-        <div class="five wide left aligned column address-style">
-            <div class="header">
-                ${{name}} &thinsp; ${{name}}
+{if true}
+    {if true}
+        <div class="class">
+            <div class="class">
+                {name} &thinsp; {name}
             </div>
             <br>
-            {{if name}}
-                <div>${{name}}</div>
-            {{else}}
-                {{if name}}
-                    <div>${{name}}</div>
-                {{/if}}
-            {{/if}}
-            <div>${{name}}, &thinsp; ${{name}} &thinsp; ${{name}}</div>
-            <div class='ui divider'></div>
-            <a href='/customer/address/${{name}}/${{name}}?path=/shop/customer-account' class='item'>Edit</a>
-            <a href='/customer/address/${{name}}/${{name}}/delete?path=/shop/customer-account' class='item' style='margin-left:10px;'>Delete</a>
+            {if name}
+                <div>{name}</div>
+            {else}
+                {if name}
+                    <div>{name}</div>
+                {/if}
+            {/if}
+            <div class='class'></div>
+            <a href='#' class='class'>E</a>
+            <a href='#' class='class' style='display:block;'>D</a>
         </div>
-    {{/if}}
-{{/if}}
+    {/if}
+{/if}
 <!-- beautify ignore:start -->
-{{eval}}
-    num = 5;
-    num++;
-    
-{{/eval}}
+{var dollars}
+{eval}
+    dollars = 1000;
+    dollars = dollars + 500;
+{/eval}
+
 <!-- beautify ignore:end -->
+<h1>{dollars}</h1>
